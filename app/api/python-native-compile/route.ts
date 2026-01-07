@@ -26,7 +26,7 @@ interface PythonCompileResponse {
   version: string
 }
 
-const PYTHON_COMPILER_URL = process.env.PYTHON_COMPILER_URL || 'https://zerocli.vercel.app';
+const PYTHON_COMPILER_URL = process.env.PYTHON_COMPILER_URL || 'https://zeroide-o16kkqg74-shahitechnovations-projects.vercel.app';
 
 export async function POST(request: NextRequest) {
   try {
