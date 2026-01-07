@@ -81,7 +81,6 @@ class EVMOpcode(Enum):
     CALLER = 0x33
     
     # Gas
-    CALLER = 0x33
     
     # Hashing
     SHA3 = 0x20
