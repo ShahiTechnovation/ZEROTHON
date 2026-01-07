@@ -39,7 +39,7 @@ export default function TemplatesPage() {
   const templates = [
     {
       icon: Coins,
-      title: 'ERC20 Token',
+      title: 'Token Mint (ERC20-like)',
       description: 'Standard fungible token with mint, burn, and transfer functions',
       difficulty: 'Beginner',
       category: 'Token',
@@ -50,35 +50,97 @@ export default function TemplatesPage() {
       views: 5678,
       author: 'zerothon',
       verified: true,
-      sampleCode: `from vyper.interfaces import ERC20
+      sampleCode: `"""
+TokenMint - A simple standard token minting contract in Python
+"""
 
-# ERC20 Token Implementation
-name: public(String[64])
-symbol: public(String[32])
-decimals: public(uint8)
-totalSupply: public(uint256)
-balanceOf: public(HashMap[address, uint256])
-allowance: public(HashMap[address, HashMap[address, uint256]])
+from zerothan.py_contracts import PySmartContract
 
-@external
-def __init__(_name: String[64], _symbol: String[32], _decimals: uint8, _supply: uint256):
-    self.name = _name
-    self.symbol = _symbol
-    self.decimals = _decimals
-    self.totalSupply = _supply
-    self.balanceOf[msg.sender] = _supply
+class TokenMint(PySmartContract):
+    """A simple token that allows minting and burning."""
+    
+    def __init__(self):
+        """Initialize the token."""
+        super().__init__()
+        
+        # Token details
+        self.name = "My Python Token"
+        self.symbol = "MPT"
+        self.decimals = 18
+        
+        # Total supply management
+        self.total_supply = self.state_var("total_supply", 0)
+        
+        # Store balances
+        self.balances = self.state_var("balances", {})
+        
+        # Access control
+        self.admin = self.state_var("admin", self.msg_sender())
+        self.minting_enabled = self.state_var("minting_enabled", True)
 
-@external
-def transfer(_to: address, _value: uint256) -> bool:
-    assert self.balanceOf[msg.sender] >= _value
-    self.balanceOf[msg.sender] -= _value
-    self.balanceOf[_to] += _value
-    return True`
+    @public_function
+    def mint(self, to: str, amount: int):
+        """Mint new tokens (Admin only)."""
+        sender = self.msg_sender()
+        
+        if sender != self.admin:
+            raise Exception("Only admin can mint!")
+            
+        if not self.minting_enabled:
+            raise Exception("Minting is disabled!")
+            
+        current_bal = self.balances.get(to, 0)
+        self.balances[to] = current_bal + amount
+        self.total_supply += amount
+        
+        self.event("Transfer", "0x0000000000000000000000000000000000000000", to, amount)
+        self.event("Mint", to, amount)
+
+    @public_function
+    def transfer(self, to: str, amount: int):
+        """Transfer tokens to another address."""
+        sender = self.msg_sender()
+        sender_bal = self.balances.get(sender, 0)
+        
+        if sender_bal < amount:
+            raise Exception("Insufficient balance!")
+            
+        recipient_bal = self.balances.get(to, 0)
+        
+        self.balances[sender] = sender_bal - amount
+        self.balances[to] = recipient_bal + amount
+        
+        self.event("Transfer", sender, to, amount)
+
+    @view_function
+    def balance_of(self, owner: str) -> int:
+        """Get the balance of an address."""
+        return self.balances.get(owner, 0)
+
+    @view_function
+    def get_total_supply(self) -> int:
+        """Get total supply."""
+        return self.total_supply
+
+    @public_function
+    def burn(self, amount: int):
+        """Burn your own tokens."""
+        sender = self.msg_sender()
+        sender_bal = self.balances.get(sender, 0)
+        
+        if sender_bal < amount:
+            raise Exception("Insufficient balance to burn!")
+            
+        self.balances[sender] = sender_bal - amount
+        self.total_supply -= amount
+        
+        self.event("Transfer", sender, "0x0000000000000000000000000000000000000000", amount)
+        self.event("Burn", sender, amount)`
     },
     {
       icon: Image,
-      title: 'ERC721 NFT',
-      description: 'Non-fungible token with metadata and royalty support',
+      title: 'Simple NFT (ERC721-like)',
+      description: 'Non-fungible token with metadata and approval support',
       difficulty: 'Intermediate',
       category: 'NFT',
       gradient: 'from-purple-500 to-pink-500',
@@ -88,112 +150,98 @@ def transfer(_to: address, _value: uint256) -> bool:
       views: 4321,
       author: 'zerothon',
       verified: true,
-      sampleCode: `# ERC721 NFT Implementation
-name: public(String[64])
-symbol: public(String[32])
-tokenURI: public(HashMap[uint256, String[256]])
-ownerOf: public(HashMap[uint256, address])
-balanceOf: public(HashMap[address, uint256])
+      sampleCode: `"""
+NFTSimple - A simple NFT contract in Python
+"""
 
-tokenId: uint256
+from zerothan.py_contracts import PySmartContract
 
-@external
-def __init__(_name: String[64], _symbol: String[32]):
-    self.name = _name
-    self.symbol = _symbol
-    self.tokenId = 0
+class NFTSimple(PySmartContract):
+    """A simplistic NFT contract."""
+    
+    def __init__(self):
+        super().__init__()
+        
+        self.name = "Python NFT"
+        self.symbol = "PNFT"
+        
+        # Maps token_id to owner address
+        self.owners = self.state_var("owners", {})
+        
+        # Maps owner to token count
+        self.balances = self.state_var("balances", {})
+        
+        # Maps token_id to approved address
+        self.token_approvals = self.state_var("token_approvals", {})
+        
+        # Next token ID to mint
+        self.next_token_id = self.state_var("next_token_id", 1)
+        
+        self.admin = self.state_var("admin", self.msg_sender())
 
-@external
-def mint(_to: address, _uri: String[256]) -> uint256:
-    self.tokenId += 1
-    self.ownerOf[self.tokenId] = _to
-    self.balanceOf[_to] += 1
-    self.tokenURI[self.tokenId] = _uri
-    return self.tokenId`
-    },
-    {
-      icon: Vote,
-      title: 'DAO Governance',
-      description: 'Decentralized voting system with proposal and execution',
-      difficulty: 'Advanced',
-      category: 'Governance',
-      gradient: 'from-blue-500 to-cyan-500',
-      code: 'Python',
-      downloads: 654,
-      likes: 234,
-      views: 3210,
-      author: 'zerothon',
-      verified: true,
-      sampleCode: `# DAO Governance Contract
-struct Proposal:
-    description: String[256]
-    voteCount: uint256
-    executed: bool
-    deadline: uint256
+    @public_function
+    def mint(self, to: str):
+        """Mint a new NFT to an address."""
+        sender = self.msg_sender()
+        if sender != self.admin:
+            raise Exception("Only admin can mint!")
+            
+        token_id = self.next_token_id
+        self.next_token_id += 1
+        
+        self.owners[token_id] = to
+        self.balances[to] = self.balances.get(to, 0) + 1
+        
+        self.event("Transfer", "0x0000000000000000000000000000000000000000", to, token_id)
+        return token_id
 
-proposals: public(HashMap[uint256, Proposal])
-hasVoted: public(HashMap[uint256, HashMap[address, bool]])
-proposalCount: uint256
+    @view_function
+    def owner_of(self, token_id: int) -> str:
+        """Get owner of a token."""
+        owner = self.owners.get(token_id)
+        if not owner:
+            raise Exception("Token does not exist")
+        return owner
 
-@external
-def createProposal(_description: String[256], _duration: uint256):
-    self.proposalCount += 1
-    self.proposals[self.proposalCount] = Proposal({
-        description: _description,
-        voteCount: 0,
-        executed: False,
-        deadline: block.timestamp + _duration
-    })
+    @public_function
+    def transfer(self, to: str, token_id: int):
+        """Transfer NFT."""
+        sender = self.msg_sender()
+        owner = self.owners.get(token_id)
+        
+        if not owner:
+            raise Exception("Token does not exist")
+            
+        if sender != owner:
+            # Check for approval
+            approved = self.token_approvals.get(token_id)
+            if sender != approved:
+                raise Exception("Not owner or approved")
+        
+        # Clear approval
+        if token_id in self.token_approvals:
+            del self.token_approvals[token_id]
+            
+        # Update balances
+        self.balances[owner] -= 1
+        self.balances[to] = self.balances.get(to, 0) + 1
+        
+        # Update owner
+        self.owners[token_id] = to
+        
+        self.event("Transfer", owner, to, token_id)
 
-@external
-def vote(_proposalId: uint256):
-    assert not self.hasVoted[_proposalId][msg.sender]
-    assert block.timestamp < self.proposals[_proposalId].deadline
-    self.proposals[_proposalId].voteCount += 1
-    self.hasVoted[_proposalId][msg.sender] = True`
-    },
-    {
-      icon: Lock,
-      title: 'Token Vesting',
-      description: 'Time-locked token distribution with cliff and vesting schedule',
-      difficulty: 'Intermediate',
-      category: 'DeFi',
-      gradient: 'from-green-500 to-emerald-500',
-      code: 'Python',
-      downloads: 543,
-      likes: 198,
-      views: 2876,
-      author: 'Community',
-      verified: false,
-      sampleCode: `# Token Vesting Contract
-struct VestingSchedule:
-    beneficiary: address
-    amount: uint256
-    start: uint256
-    cliff: uint256
-    duration: uint256
-    released: uint256
-
-vestingSchedules: public(HashMap[address, VestingSchedule])
-
-@external
-def createVesting(_beneficiary: address, _amount: uint256, _cliff: uint256, _duration: uint256):
-    self.vestingSchedules[_beneficiary] = VestingSchedule({
-        beneficiary: _beneficiary,
-        amount: _amount,
-        start: block.timestamp,
-        cliff: _cliff,
-        duration: _duration,
-        released: 0
-    })
-
-@external
-def release():
-    schedule: VestingSchedule = self.vestingSchedules[msg.sender]
-    assert block.timestamp >= schedule.start + schedule.cliff
-    vested: uint256 = self._vestedAmount(schedule)
-    releasable: uint256 = vested - schedule.released
-    schedule.released += releasable`
+    @public_function
+    def approve(self, to: str, token_id: int):
+        """Approve an address to transfer a specific token."""
+        sender = self.msg_sender()
+        owner = self.owners.get(token_id)
+        
+        if sender != owner:
+            raise Exception("Not owner")
+            
+        self.token_approvals[token_id] = to
+        self.event("Approval", owner, to, token_id)`
     },
     {
       icon: Zap,
@@ -206,32 +254,102 @@ def release():
       downloads: 876,
       likes: 345,
       views: 4567,
-      author: 'Community',
-      verified: false,
-      sampleCode: `# Staking Contract
-struct Stake:
-    amount: uint256
-    timestamp: uint256
-    rewards: uint256
+      author: 'zerothon',
+      verified: true,
+      sampleCode: `"""
+Staking - A simple staking contract in Python
+"""
 
-stakes: public(HashMap[address, Stake])
-rewardRate: public(uint256)  # APY in basis points
+from zerothan.py_contracts import PySmartContract
 
-@external
-def __init__(_rewardRate: uint256):
-    self.rewardRate = _rewardRate
+class Staking(PySmartContract):
+    """Allows users to stake tokens and earn rewards (simulated)."""
+    
+    def __init__(self):
+        super().__init__()
+        
+        # Maps user address to staked amount
+        self.stakes = self.state_var("stakes", {})
+        
+        # Total staked in contract
+        self.total_staked = self.state_var("total_staked", 0)
+        
+        # Store when they staked (simulated timestamp)
+        self.stake_times = self.state_var("stake_times", {})
+        
+        # Reward rate (e.g., 10% per duration step)
+        self.reward_rate = 10 
+        
+    @public_function
+    def stake(self, amount: int):
+        """Stake tokens."""
+        sender = self.msg_sender()
+        
+        if amount <= 0:
+            raise Exception("Amount must be positive")
+            
+        # In a real system, you'd transferFrom a token contract here.
+        # For this template, we assume the native currency or direct deposit logic.
+        
+        current_stake = self.stakes.get(sender, 0)
+        
+        # Calculate pending rewards if already staking
+        if current_stake > 0:
+            self._claim_rewards(sender)
+            
+        self.stakes[sender] = current_stake + amount
+        self.total_staked += amount
+        self.stake_times[sender] = self.block_number() # Using block number as time proxy
+        
+        self.event("Staked", sender, amount)
 
-@external
-def stake(_amount: uint256):
-    self.stakes[msg.sender].amount += _amount
-    self.stakes[msg.sender].timestamp = block.timestamp
+    @public_function
+    def withdraw(self, amount: int):
+        """Withdraw staked tokens."""
+        sender = self.msg_sender()
+        current_stake = self.stakes.get(sender, 0)
+        
+        if amount > current_stake:
+            raise Exception("Insufficient stake")
+            
+        # Claim rewards first
+        self._claim_rewards(sender)
+        
+        self.stakes[sender] = current_stake - amount
+        self.total_staked -= amount
+        
+        self.event("Withdrawn", sender, amount)
 
-@external
-def calculateRewards(_staker: address) -> uint256:
-    stake: Stake = self.stakes[_staker]
-    duration: uint256 = block.timestamp - stake.timestamp
-    rewards: uint256 = (stake.amount * self.rewardRate * duration) / (365 * 86400 * 10000)
-    return rewards`
+    @public_function
+    def claim(self):
+        """Claim pending rewards."""
+        sender = self.msg_sender()
+        self._claim_rewards(sender)
+
+    def _claim_rewards(self, user: str):
+        """Internal helper to calculate and 'send' rewards."""
+        current_stake = self.stakes.get(user, 0)
+        if current_stake == 0:
+            return
+            
+        last_stake_block = self.stake_times.get(user, 0)
+        current_block = self.block_number()
+        
+        if current_block <= last_stake_block:
+            return
+            
+        blocks_diff = current_block - last_stake_block
+        reward = (current_stake * self.reward_rate * blocks_diff) // 100
+        
+        if reward > 0:
+             # Reset time
+            self.stake_times[user] = current_block
+            self.event("RewardPaid", user, reward)
+            # In real contract, mint or transfer reward tokens here
+
+    @view_function
+    def get_stake(self, user: str) -> int:
+        return self.stakes.get(user, 0)`
     },
     {
       icon: TrendingUp,
@@ -244,178 +362,98 @@ def calculateRewards(_staker: address) -> uint256:
       downloads: 432,
       likes: 187,
       views: 2345,
-      author: 'Community',
-      verified: false,
-      sampleCode: `# AMM Liquidity Pool (Constant Product)
-reserveA: public(uint256)
-reserveB: public(uint256)
-totalLiquidity: public(uint256)
-liquidity: public(HashMap[address, uint256])
-
-@external
-def addLiquidity(_amountA: uint256, _amountB: uint256) -> uint256:
-    if self.totalLiquidity == 0:
-        liquidityMinted: uint256 = sqrt(_amountA * _amountB)
-    else:
-        liquidityMinted: uint256 = min(
-            (_amountA * self.totalLiquidity) / self.reserveA,
-            (_amountB * self.totalLiquidity) / self.reserveB
-        )
-    self.reserveA += _amountA
-    self.reserveB += _amountB
-    self.totalLiquidity += liquidityMinted
-    self.liquidity[msg.sender] += liquidityMinted
-    return liquidityMinted
-
-@external
-def swap(_amountIn: uint256, _tokenIn: bool) -> uint256:
-    # Constant product: x * y = k
-    if _tokenIn:
-        amountOut: uint256 = (self.reserveB * _amountIn) / (self.reserveA + _amountIn)
-        self.reserveA += _amountIn
-        self.reserveB -= amountOut
-    else:
-        amountOut: uint256 = (self.reserveA * _amountIn) / (self.reserveB + _amountIn)
-        self.reserveB += _amountIn
-        self.reserveA -= amountOut
-    return amountOut`
-    },
-    {
-      icon: Users,
-      title: 'Multi-Sig Wallet',
-      description: 'Secure wallet requiring multiple signatures for transactions',
-      difficulty: 'Advanced',
-      category: 'Security',
-      gradient: 'from-red-500 to-pink-500',
-      code: 'Python',
-      downloads: 765,
-      likes: 298,
-      views: 3456,
       author: 'zerothon',
       verified: true,
-      sampleCode: `# Multi-Signature Wallet
-struct Transaction:
-    to: address
-    value: uint256
-    executed: bool
-    confirmations: uint256
+      sampleCode: `"""
+DeFiSwap - A simple AMM-style swap contract in Python
+"""
 
-owners: public(HashMap[address, bool])
-required: public(uint256)
-transactions: public(HashMap[uint256, Transaction])
-confirmed: public(HashMap[uint256, HashMap[address, bool]])
-transactionCount: uint256
+from zerothan.py_contracts import PySmartContract
 
-@external
-def __init__(_owners: address[5], _required: uint256):
-    for owner in _owners:
-        if owner != ZERO_ADDRESS:
-            self.owners[owner] = True
-    self.required = _required
-
-@external
-def submitTransaction(_to: address, _value: uint256):
-    assert self.owners[msg.sender]
-    self.transactionCount += 1
-    self.transactions[self.transactionCount] = Transaction({
-        to: _to,
-        value: _value,
-        executed: False,
-        confirmations: 0
-    })
-
-@external
-def confirmTransaction(_txId: uint256):
-    assert self.owners[msg.sender]
-    assert not self.confirmed[_txId][msg.sender]
-    self.confirmed[_txId][msg.sender] = True
-    self.transactions[_txId].confirmations += 1`
-    },
-    {
-      icon: Shield,
-      title: 'Access Control',
-      description: 'Role-based permissions with admin and user roles',
-      difficulty: 'Beginner',
-      category: 'Security',
-      gradient: 'from-indigo-500 to-purple-500',
-      code: 'Python',
-      downloads: 1098,
-      likes: 432,
-      views: 5432,
-      author: 'zerothon',
-      verified: true,
-      sampleCode: `# Role-Based Access Control
-ADMIN_ROLE: constant(bytes32) = keccak256("ADMIN")
-USER_ROLE: constant(bytes32) = keccak256("USER")
-
-roles: public(HashMap[bytes32, HashMap[address, bool]])
-admin: public(address)
-
-@external
-def __init__():
-    self.admin = msg.sender
-    self.roles[ADMIN_ROLE][msg.sender] = True
-
-@external
-def grantRole(_role: bytes32, _account: address):
-    assert self.roles[ADMIN_ROLE][msg.sender]
-    self.roles[_role][_account] = True
-
-@external
-def revokeRole(_role: bytes32, _account: address):
-    assert self.roles[ADMIN_ROLE][msg.sender]
-    self.roles[_role][_account] = False
-
-@external
-def hasRole(_role: bytes32, _account: address) -> bool:
-    return self.roles[_role][_account]`
-    },
-    {
-      icon: Sparkles,
-      title: 'NFT Marketplace',
-      description: 'Buy, sell, and auction NFTs with royalty distribution',
-      difficulty: 'Expert',
-      category: 'NFT',
-      gradient: 'from-pink-500 to-rose-500',
-      code: 'Python',
-      downloads: 543,
-      likes: 234,
-      views: 3210,
-      author: 'Community',
-      verified: false,
-      sampleCode: `# NFT Marketplace
-struct Listing:
-    seller: address
-    price: uint256
-    active: bool
-
-listings: public(HashMap[uint256, Listing])
-royaltyPercentage: public(uint256)
-
-@external
-def __init__(_royaltyPercentage: uint256):
-    self.royaltyPercentage = _royaltyPercentage
-
-@external
-def listNFT(_tokenId: uint256, _price: uint256):
-    self.listings[_tokenId] = Listing({
-        seller: msg.sender,
-        price: _price,
-        active: True
-    })
-
-@external
-@payable
-def buyNFT(_tokenId: uint256):
-    listing: Listing = self.listings[_tokenId]
-    assert listing.active
-    assert msg.value >= listing.price
+class DeFiSwap(PySmartContract):
+    """Simple Constant Product AMM (x * y = k)."""
     
-    royalty: uint256 = (listing.price * self.royaltyPercentage) / 10000
-    sellerAmount: uint256 = listing.price - royalty
-    
-    send(listing.seller, sellerAmount)
-    listing.active = False`
+    def __init__(self):
+        super().__init__()
+        
+        # Balances of the two tokens in the pool
+        self.token_a_reserves = self.state_var("token_a", 1000000)
+        self.token_b_reserves = self.state_var("token_b", 1000000)
+        
+        # Admin
+        self.admin = self.state_var("admin", self.msg_sender())
+        
+        # Fee (0.3% usually, here represented as 3 parts in 1000)
+        self.fee = 3
+
+    @view_function
+    def get_reserves(self) -> list:
+        """Get current reserves of both tokens."""
+        return [self.token_a_reserves, self.token_b_reserves]
+
+    @view_function
+    def get_amount_out(self, amount_in: int, reserve_in: int, reserve_out: int) -> int:
+        """Calculate amount out based on x*y=k formula."""
+        if amount_in <= 0:
+             raise Exception("Invalid input amount")
+        if reserve_in <= 0 or reserve_out <= 0:
+             raise Exception("Insufficient liquidity")
+             
+        amount_in_with_fee = amount_in * (1000 - self.fee)
+        numerator = amount_in_with_fee * reserve_out
+        denominator = (reserve_in * 1000) + amount_in_with_fee
+        
+        return numerator // denominator
+
+    @public_function
+    def swap_a_for_b(self, amount_a_in: int):
+        """Swap Token A for Token B."""
+        sender = self.msg_sender()
+        
+        # Verify inputs
+        if amount_a_in <= 0:
+            raise Exception("Amount must be positive")
+            
+        # Calculate output
+        amount_b_out = self.get_amount_out(amount_a_in, self.token_a_reserves, self.token_b_reserves)
+        
+        if amount_b_out >= self.token_b_reserves:
+             raise Exception("Insufficient liquidity for swap")
+             
+        # Update reserves
+        self.token_a_reserves += amount_a_in
+        self.token_b_reserves -= amount_b_out
+        
+        self.event("Swap", sender, "A_for_B", amount_a_in, amount_b_out)
+
+    @public_function
+    def swap_b_for_a(self, amount_b_in: int):
+        """Swap Token B for Token A."""
+        sender = self.msg_sender()
+        
+        if amount_b_in <= 0:
+            raise Exception("Amount must be positive")
+            
+        amount_a_out = self.get_amount_out(amount_b_in, self.token_b_reserves, self.token_a_reserves)
+        
+        if amount_a_out >= self.token_a_reserves:
+             raise Exception("Insufficient liquidity for swap")
+             
+        self.token_b_reserves += amount_b_in
+        self.token_a_reserves -= amount_a_out
+        
+        self.event("Swap", sender, "B_for_A", amount_b_in, amount_a_out)
+
+    @public_function
+    def add_liquidity(self, amount_a: int, amount_b: int):
+        """Add liquidity to the pool (simplified)."""
+        sender = self.msg_sender()
+        
+        self.token_a_reserves += amount_a
+        self.token_b_reserves += amount_b
+        
+        # In real pool, you'd mint LP tokens here based on contribution
+        self.event("LiquidityAdded", sender, amount_a, amount_b)`
     }
   ]
 
