@@ -16,11 +16,6 @@ const menuItems = [
     href: "/ai-chat",
   },
   {
-    title: "Zero Wizard",
-    icon: Sparkles,
-    href: "/wizard",
-  },
-  {
     title: "Features",
     icon: Zap,
     href: "/features",
@@ -29,6 +24,11 @@ const menuItems = [
     title: "Templates",
     icon: Layout,
     href: "/templates",
+  },
+  {
+    title: "Wizard",
+    icon: Sparkles,
+    href: "/wizard",
   },
   {
     title: "Documentation",
